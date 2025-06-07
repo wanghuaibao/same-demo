@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Website Cloner</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50 min-h-screen flex items-center justify-center p-4">
+    <div class="w-full max-w-md bg-white rounded-lg shadow-lg p-6">
+        <div class="text-center mb-8">
+            <h1 class="text-2xl font-bold text-gray-900 mb-2">Website Cloner</h1>
+            <p class="text-gray-600">输入网址，一键克隆并下载整站</p>
+        </div>
+        
+        <form id="cloneForm" class="space-y-4">
+            <div>
+                <label for="urlInput" class="block text-sm font-medium text-gray-700 mb-2">
+                    网站地址
+                </label>
+                <input 
+                    type="url" 
+                    id="urlInput" 
+                    placeholder="https://example.com"
+                    required
+                    class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                >
+            </div>
+            
+            <div class="space-y-3">
+                <button 
+                    type="submit"
+                    id="cloneButton"
+                    class="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white font-medium py-2 px-4 rounded-md transition-colors duration-200"
+                >
+                    克隆网站
+                </button>
+            </div>
+            
+            <div class="mt-3 text-xs text-gray-500 space-y-1">
+                <p><strong>开箱即用版本：</strong>包含网站截图，解压后直接双击index.html即可查看</p>
+                <p><strong>完整交互版本：</strong>包含所有资源，需要HTTP服务器运行以获得完整体验</p>
+            </div>
+        </form>
+        
+        <div id="progress" class="hidden mt-4">
+            <div class="bg-gray-200 rounded-full h-2">
+                <div class="bg-blue-600 h-2 rounded-full animate-pulse" style="width: 100%"></div>
+            </div>
+            <p class="text-sm text-gray-600 mt-2 text-center">正在克隆网站，请稍候...</p>
+        </div>
+    </div>
+
+    <script>
+        const form = document.getElementById('cloneForm');
+        const urlInput = document.getElementById('urlInput');
+        const cloneButton = document.getElementById('cloneButton');
+        const progress = document.getElementById('progress');
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const url = urlInput.value.trim();
+            if (!url) {
+                alert('请输入有效的网址');
+                return;
+            }
+
+            const originalText = cloneButton.textContent;
+
+            // 显示进度状态
+            cloneButton.disabled = true;
+            cloneButton.textContent = '正在克隆...';
+            progress.classList.remove('hidden');
+
+            try {
+                const response = await fetch('/api/clone', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ url })
+                });
+
+                if (!response.ok) {
+                    let errorMessage = '克隆失败';
+                    try {
+                        const errorData = await response.json();
+                        errorMessage = errorData.error || errorMessage;
+                    } catch (jsonError) {
+                        // The error response might not be JSON.
+                        errorMessage = await response.text();
+                    }
+                    throw new Error(errorMessage);
+                }
+
+                const disposition = response.headers.get('Content-Disposition');
+                let filename = 'website-clone.zip';
+                if (disposition && disposition.indexOf('attachment') !== -1) {
+                    const filenameRegex = /filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/;
+                    const matches = filenameRegex.exec(disposition);
+                    if (matches != null && matches[1]) {
+                        filename = matches[1].replace(/['"]/g, '');
+                    }
+                }
+                
+                const blob = await response.blob();
+                
+                const downloadUrl = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = downloadUrl;
+                a.download = filename;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                
+                URL.revokeObjectURL(downloadUrl);
+                
+            } catch (error) {
+                alert(error.message);
+            } finally {
+                // 恢复按钮状态
+                cloneButton.disabled = false;
+                cloneButton.textContent = originalText;
+                progress.classList.add('hidden');
+            }
+        });
+    </script>
+</body>
+</html> 

@@ -1,0 +1,25 @@
+{
+  "name": "same-demo",
+  "module": "index.ts",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "dev": "bun run src/server.ts --hot",
+    "start": "bun run src/server.ts"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "@types/node": "^22.15.30"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  },
+  "dependencies": {
+    "@types/archiver": "^6.0.3",
+    "@types/website-scraper": "^1.2.10",
+    "archiver": "^7.0.1",
+    "cheerio": "^1.0.0",
+    "jszip": "^3.10.1",
+    "puppeteer": "^24.10.0"
+  }
+}

@@ -1,0 +1,60 @@
+# dependencies (bun install)
+node_modules
+
+# output
+out
+dist
+*.tgz
+
+# code coverage
+coverage
+*.lcov
+
+# logs
+logs
+_.log
+report.[0-9]_.[0-9]_.[0-9]_.[0-9]_.json
+
+# dotenv environment variable files
+.env
+.env.development.local
+.env.test.local
+.env.production.local
+.env.local
+
+# caches
+.eslintcache
+.cache
+*.tsbuildinfo
+
+# IntelliJ based IDEs
+.idea
+
+# Finder (MacOS) folder config
+.DS_Store
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.cursor/*
+*.swp
+*.swo
+
+# OS generated files
+Thumbs.db
+
+# Build artifacts
+*.zip
+
+# Lock files (keep bun.lock but ignore others)
+yarn.lock
+package-lock.json
+
+# Test and temporary directories
+latest_test/
+httpbin.org/
+verify-clone.html
+
+# Temporary files
+*.tmp
+*.temp
