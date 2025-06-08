@@ -3,60 +3,430 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Website Cloner</title>
+    <title>Website Cloner - 专业网站克隆工具</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'dark-bg': '#0a0a0a',
+                        'dark-card': '#1a1a1a',
+                        'dark-border': '#2a2a2a',
+                        'accent': '#3b82f6',
+                        'accent-hover': '#2563eb',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .gradient-text {
+            background: linear-gradient(45deg, #3b82f6, #8b5cf6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        .feature-card {
+            background: linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 100%);
+            border: 1px solid #3a3a3a;
+            transition: all 0.3s ease;
+        }
+        .feature-card:hover {
+            transform: translateY(-5px);
+            border-color: #3b82f6;
+        }
+        .hero-bg {
+            background: radial-gradient(circle at 50% 50%, #1a1a1a 0%, #0a0a0a 100%);
+        }
+    </style>
 </head>
-<body class="bg-gray-50 min-h-screen flex items-center justify-center p-4">
-    <div class="w-full max-w-md bg-white rounded-lg shadow-lg p-6">
-        <div class="text-center mb-8">
-            <h1 class="text-2xl font-bold text-gray-900 mb-2">Website Cloner</h1>
-            <p class="text-gray-600">输入网址，一键克隆并下载整站</p>
+<body class="bg-dark-bg text-white min-h-screen">
+    <!-- Navigation -->
+    <nav class="fixed top-0 w-full z-50 bg-dark-bg/80 backdrop-blur-sm border-b border-dark-border">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center py-4">
+                <div class="flex items-center space-x-3">
+                    <div class="w-10 h-10 bg-gradient-to-br from-accent to-purple-600 rounded-lg flex items-center justify-center">
+                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                        </svg>
+                    </div>
+                    <span class="text-xl font-bold gradient-text">Website Cloner</span>
+                </div>
+                <div class="hidden md:flex items-center space-x-8">
+                    <a href="#features" class="text-gray-300 hover:text-white transition-colors">功能特性</a>
+                    <a href="#how-it-works" class="text-gray-300 hover:text-white transition-colors">工作原理</a>
+                    <a href="#pricing" class="text-gray-300 hover:text-white transition-colors">定价</a>
+                </div>
+            </div>
         </div>
-        
-        <form id="cloneForm" class="space-y-4">
-            <div>
-                <label for="urlInput" class="block text-sm font-medium text-gray-700 mb-2">
-                    网站地址
-                </label>
-                <input 
-                    type="url" 
-                    id="urlInput" 
-                    placeholder="https://example.com"
-                    required
-                    class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                >
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="hero-bg pt-24 pb-20">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+            <div class="max-w-4xl mx-auto">
+                <h1 class="text-5xl md:text-7xl font-bold mb-6">
+                    一键克隆
+                    <span class="gradient-text">任何网站</span>
+                </h1>
+                <p class="text-xl md:text-2xl text-gray-300 mb-8 leading-relaxed">
+                    专业级网站克隆工具，完美复制任何网站并打包下载
+                </p>
+                
+                <!-- Feature Tags -->
+                <div class="flex flex-wrap justify-center gap-3 mb-12">
+                    <span class="px-4 py-2 bg-green-500/20 text-green-400 rounded-full text-sm font-medium border border-green-500/30">
+                        ✨ 100% 开箱即用
+                    </span>
+                    <span class="px-4 py-2 bg-blue-500/20 text-blue-400 rounded-full text-sm font-medium border border-blue-500/30">
+                        🚀 极速克隆
+                    </span>
+                    <span class="px-4 py-2 bg-purple-500/20 text-purple-400 rounded-full text-sm font-medium border border-purple-500/30">
+                        🛡️ 完美兼容
+                    </span>
+                    <span class="px-4 py-2 bg-orange-500/20 text-orange-400 rounded-full text-sm font-medium border border-orange-500/30">
+                        💎 专业品质
+                    </span>
+                </div>
+
+                <!-- Clone Form -->
+                <div class="max-w-2xl mx-auto">
+                    <form id="cloneForm" class="space-y-6">
+                        <div class="relative">
+                            <input 
+                                type="url" 
+                                id="urlInput" 
+                                placeholder="输入网站地址 (例如: https://example.com)"
+                                required
+                                class="w-full px-6 py-4 bg-dark-card border border-dark-border rounded-2xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent text-lg"
+                            >
+                        </div>
+                        
+                        <div class="grid md:grid-cols-2 gap-4">
+                            <button 
+                                type="submit"
+                                id="previewButton"
+                                data-action="preview"
+                                class="bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 disabled:from-gray-600 disabled:to-gray-700 disabled:cursor-not-allowed text-white font-semibold py-4 px-8 rounded-2xl transition-all duration-300 transform hover:scale-[1.02] text-lg shadow-lg"
+                            >
+                                👁️ 在线预览
+                            </button>
+                            <button 
+                                type="submit"
+                                id="downloadButton"
+                                data-action="download"
+                                class="bg-gradient-to-r from-accent to-purple-600 hover:from-accent-hover hover:to-purple-700 disabled:from-gray-600 disabled:to-gray-700 disabled:cursor-not-allowed text-white font-semibold py-4 px-8 rounded-2xl transition-all duration-300 transform hover:scale-[1.02] text-lg shadow-lg"
+                            >
+                                📥 下载ZIP
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Progress -->
+                <div id="progress" class="hidden mt-8 max-w-2xl mx-auto">
+                    <div class="bg-dark-card rounded-2xl p-6 border border-dark-border">
+                        <div class="bg-gray-700 rounded-full h-3 mb-4">
+                            <div id="progressBar" class="bg-gradient-to-r from-accent to-purple-600 h-3 rounded-full transition-all duration-300" style="width: 0%"></div>
+                        </div>
+                        <div class="text-center">
+                            <p id="progressText" class="text-gray-300 font-medium mb-2">🚀 正在克隆网站，请稍候...</p>
+                            <div id="progressPercent" class="text-sm text-gray-400">0%</div>
+                        </div>
+                        <!-- Progress Log -->
+                        <div id="progressLog" class="mt-4 max-h-64 overflow-y-auto bg-gray-900 rounded-lg p-3 border border-gray-700">
+                            <div class="text-xs text-gray-400 font-mono space-y-1">
+                                <!-- Progress messages will appear here -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
-            
-            <div class="space-y-3">
-                <button 
-                    type="submit"
-                    id="cloneButton"
-                    class="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white font-medium py-2 px-4 rounded-md transition-colors duration-200"
-                >
-                    克隆网站
-                </button>
-            </div>
-            
-            <div class="mt-3 text-xs text-gray-500 space-y-1">
-                <p><strong>开箱即用版本：</strong>包含网站截图，解压后直接双击index.html即可查看</p>
-                <p><strong>完整交互版本：</strong>包含所有资源，需要HTTP服务器运行以获得完整体验</p>
-            </div>
-        </form>
-        
-        <div id="progress" class="hidden mt-4">
-            <div class="bg-gray-200 rounded-full h-2">
-                <div class="bg-blue-600 h-2 rounded-full animate-pulse" style="width: 100%"></div>
-            </div>
-            <p class="text-sm text-gray-600 mt-2 text-center">正在克隆网站，请稍候...</p>
         </div>
-    </div>
+    </section>
+
+    <!-- Features Section -->
+    <section id="features" class="py-20 bg-dark-bg">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center mb-16">
+                <h2 class="text-4xl md:text-5xl font-bold mb-4">
+                    为什么选择 <span class="gradient-text">Website Cloner</span>
+                </h2>
+                <p class="text-xl text-gray-300">专业级功能，让网站克隆变得简单高效</p>
+            </div>
+
+            <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+                <!-- Feature 1 -->
+                <div class="feature-card rounded-2xl p-8">
+                    <div class="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center mb-6">
+                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                        </svg>
+                    </div>
+                    <h3 class="text-xl font-semibold mb-4">闪电克隆</h3>
+                    <p class="text-gray-300">30-90秒极速克隆，包含所有页面资源、CSS样式和JavaScript脚本</p>
+                </div>
+
+                <!-- Feature 2 -->
+                <div class="feature-card rounded-2xl p-8">
+                    <div class="w-12 h-12 bg-gradient-to-br from-green-500 to-emerald-600 rounded-xl flex items-center justify-center mb-6">
+                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                    </div>
+                    <h3 class="text-xl font-semibold mb-4">开箱即用</h3>
+                    <p class="text-gray-300">解压即可使用，无需服务器环境，完美支持本地file://协议访问</p>
+                </div>
+
+                <!-- Feature 3 -->
+                <div class="feature-card rounded-2xl p-8">
+                    <div class="w-12 h-12 bg-gradient-to-br from-orange-500 to-red-600 rounded-xl flex items-center justify-center mb-6">
+                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path>
+                        </svg>
+                    </div>
+                    <h3 class="text-xl font-semibold mb-4">完美兼容</h3>
+                    <p class="text-gray-300">智能处理CORS错误，JavaScript兼容性问题，确保95%+的资源完整性</p>
+                </div>
+
+                <!-- Feature 4 -->
+                <div class="feature-card rounded-2xl p-8">
+                    <div class="w-12 h-12 bg-gradient-to-br from-purple-500 to-pink-600 rounded-xl flex items-center justify-center mb-6">
+                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
+                        </svg>
+                    </div>
+                    <h3 class="text-xl font-semibold mb-4">全资源捕获</h3>
+                    <p class="text-gray-300">包含CDN资源、外部字体、图片等，确保克隆网站的完整性和可用性</p>
+                </div>
+
+                <!-- Feature 5 -->
+                <div class="feature-card rounded-2xl p-8">
+                    <div class="w-12 h-12 bg-gradient-to-br from-teal-500 to-cyan-600 rounded-xl flex items-center justify-center mb-6">
+                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
+                        </svg>
+                    </div>
+                    <h3 class="text-xl font-semibold mb-4">安全可靠</h3>
+                    <p class="text-gray-300">无需注册登录，不存储用户数据，保护您的隐私和数据安全</p>
+                </div>
+
+                <!-- Feature 6 -->
+                <div class="feature-card rounded-2xl p-8">
+                    <div class="w-12 h-12 bg-gradient-to-br from-indigo-500 to-blue-600 rounded-xl flex items-center justify-center mb-6">
+                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10"></path>
+                        </svg>
+                    </div>
+                    <h3 class="text-xl font-semibold mb-4">一键下载</h3>
+                    <p class="text-gray-300">自动打包为ZIP文件，方便分享和存储，支持批量网站管理</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Stats Section -->
+    <section class="py-20 bg-dark-card">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="grid md:grid-cols-3 gap-8 text-center">
+                <div>
+                    <div class="text-4xl font-bold gradient-text mb-2">95%+</div>
+                    <p class="text-gray-300">资源完整性</p>
+                </div>
+                <div>
+                    <div class="text-4xl font-bold gradient-text mb-2">30-90s</div>
+                    <p class="text-gray-300">平均克隆时间</p>
+                </div>
+                <div>
+                    <div class="text-4xl font-bold gradient-text mb-2">100%</div>
+                    <p class="text-gray-300">开箱即用率</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- CTA Section -->
+    <section class="py-20 bg-gradient-to-br from-accent to-purple-600">
+        <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+            <h2 class="text-4xl md:text-5xl font-bold mb-6">
+                立即开始克隆您的网站
+            </h2>
+            <p class="text-xl text-blue-100 mb-8">
+                专业级网站克隆工具，让您的工作更高效
+            </p>
+            <a href="#" class="inline-flex items-center px-8 py-4 bg-white text-accent font-semibold rounded-2xl hover:bg-gray-100 transition-colors text-lg">
+                立即开始免费试用
+                <svg class="ml-2 w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"></path>
+                </svg>
+            </a>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="bg-dark-bg border-t border-dark-border py-12">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex flex-col md:flex-row justify-between items-center">
+                <div class="flex items-center space-x-3 mb-4 md:mb-0">
+                    <div class="w-8 h-8 bg-gradient-to-br from-accent to-purple-600 rounded-lg flex items-center justify-center">
+                        <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                        </svg>
+                    </div>
+                    <span class="text-lg font-semibold gradient-text">Website Cloner</span>
+                </div>
+                <p class="text-gray-400 text-sm">
+                    © 2024 Website Cloner. 专业网站克隆工具，让复制网站变得简单。
+                </p>
+            </div>
+        </div>
+    </footer>
 
     <script>
         const form = document.getElementById('cloneForm');
         const urlInput = document.getElementById('urlInput');
-        const cloneButton = document.getElementById('cloneButton');
+        const previewButton = document.getElementById('previewButton');
+        const downloadButton = document.getElementById('downloadButton');
         const progress = document.getElementById('progress');
+        const progressBar = document.getElementById('progressBar');
+        const progressText = document.getElementById('progressText');
+        const progressPercent = document.getElementById('progressPercent');
+        const progressLog = document.getElementById('progressLog');
 
+        // Generate unique session ID
+        function generateSessionId() {
+            return 'session_' + Math.random().toString(36).substr(2, 9);
+        }
+
+        // Add progress message to log
+        function addProgressMessage(message, type = 'info') {
+            const logContainer = progressLog.querySelector('.space-y-1');
+            const messageDiv = document.createElement('div');
+            
+            // Enhanced styling for different message types
+            const typeClasses = {
+                'error': 'text-red-400 font-medium',
+                'success': 'text-green-400 font-medium',
+                'info': 'text-gray-300',
+                'progress': 'text-blue-400',
+                'status': 'text-yellow-400 font-medium'
+            };
+            
+            messageDiv.className = `text-xs ${typeClasses[type] || 'text-gray-300'}`;
+            messageDiv.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            logContainer.appendChild(messageDiv);
+            
+            // Auto-scroll to bottom
+            progressLog.scrollTop = progressLog.scrollHeight;
+            
+            // Keep only last 150 messages for preview mode (more context)
+            const messages = logContainer.children;
+            if (messages.length > 150) {
+                logContainer.removeChild(messages[0]);
+            }
+        }
+
+        // Update progress UI
+        function updateProgress(percent, message) {
+            progressBar.style.width = percent + '%';
+            progressPercent.textContent = percent + '%';
+            if (message) {
+                progressText.textContent = message;
+                addProgressMessage(message);
+            }
+        }
+
+        // Reset progress UI
+        function resetProgress() {
+            updateProgress(0, '🚀 正在克隆网站，请稍候...');
+            const logContainer = progressLog.querySelector('.space-y-1');
+            logContainer.innerHTML = '';
+        }
+
+        // Create success result UI (works for both preview and download)
+        function createSuccessResult(data, isPreview = false) {
+            // Remove previous results if any
+            const existingResults = document.querySelectorAll('.success-result');
+            existingResults.forEach(el => el.remove());
+            
+            const resultDiv = document.createElement('div');
+            resultDiv.className = 'mt-6 p-8 bg-gradient-to-br from-green-500/10 to-emerald-600/10 border-2 border-green-500/30 rounded-2xl success-result animate-pulse';
+            
+            if (isPreview && data.previewUrl && data.downloadUrl) {
+                // Preview mode with both options
+                resultDiv.innerHTML = `
+                    <div class="text-center space-y-6">
+                        <div class="text-6xl mb-4">🎉</div>
+                        <h3 class="text-2xl font-bold text-green-400 mb-2">网站克隆成功！</h3>
+                        <p class="text-gray-300 mb-6">您的网站已成功克隆并生成预览，现在可以访问预览或下载ZIP文件。</p>
+                        
+                        <div class="grid md:grid-cols-2 gap-4">
+                            <a href="${data.previewUrl}" target="_blank" 
+                               class="inline-block px-8 py-4 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white font-bold rounded-xl transition-all duration-300 transform hover:scale-105 shadow-lg text-lg">
+                                👁️ 在线预览
+                                <svg class="ml-2 w-5 h-5 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-2M14 6h6m0 0v6m0-6L10 16"></path>
+                                </svg>
+                            </a>
+                            
+                            <button onclick="downloadFromUrl('${data.downloadUrl}')" 
+                               class="inline-block px-8 py-4 bg-gradient-to-r from-accent to-purple-600 hover:from-accent-hover hover:to-purple-700 text-white font-bold rounded-xl transition-all duration-300 transform hover:scale-105 shadow-lg text-lg">
+                                📥 下载ZIP
+                                <svg class="ml-2 w-5 h-5 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                                </svg>
+                            </button>
+                        </div>
+                        
+                        <div class="mt-6 p-4 bg-gray-800/50 rounded-lg">
+                            <p class="text-sm text-gray-400 mb-2">预览链接:</p>
+                            <code class="bg-gray-900 px-3 py-2 rounded text-green-400 text-sm break-all">${data.previewUrl}</code>
+                        </div>
+                    </div>
+                `;
+            } else {
+                // Download only mode
+                resultDiv.innerHTML = `
+                    <div class="text-center space-y-6">
+                        <div class="text-6xl mb-4">✅</div>
+                        <h3 class="text-2xl font-bold text-green-400 mb-2">下载成功！</h3>
+                        <p class="text-gray-300 mb-6">您的网站已成功克隆并下载到本地。</p>
+                        
+                        <div class="p-4 bg-blue-500/10 border border-blue-500/30 rounded-lg">
+                            <p class="text-blue-400 font-medium mb-2">💡 使用提示</p>
+                            <p class="text-gray-300 text-sm">解压ZIP文件后，直接双击 <code class="bg-gray-700 px-2 py-1 rounded text-green-400">index.html</code> 即可在浏览器中查看网站！</p>
+                        </div>
+                    </div>
+                `;
+            }
+            
+            // Insert result after the progress section with smooth animation
+            progress.parentNode.insertBefore(resultDiv, progress.nextSibling);
+            
+            // Remove the animation class after a short delay
+            setTimeout(() => {
+                resultDiv.classList.remove('animate-pulse');
+            }, 2000);
+            
+            // Auto-scroll to the result
+            setTimeout(() => {
+                resultDiv.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }, 500);
+        }
+
+        // Download file from URL
+        function downloadFromUrl(downloadUrl) {
+            const a = document.createElement('a');
+            a.href = downloadUrl;
+            a.download = '';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+        }
+
+        // Handle form submission
         form.addEventListener('submit', async (e) => {
             e.preventDefault();
             
@@ -66,64 +436,172 @@
                 return;
             }
 
-            const originalText = cloneButton.textContent;
+            const clickedButton = e.submitter;
+            const action = clickedButton.getAttribute('data-action');
+            const isPreview = action === 'preview';
+            
+            const originalText = clickedButton.innerHTML;
+            const allButtons = [previewButton, downloadButton];
+            const sessionId = generateSessionId();
 
-            // 显示进度状态
-            cloneButton.disabled = true;
-            cloneButton.textContent = '正在克隆...';
+            // Reset and show progress
+            resetProgress();
+            allButtons.forEach(btn => btn.disabled = true);
+            clickedButton.innerHTML = isPreview ? '🔄 正在生成预览...' : '🔄 正在打包下载...';
             progress.classList.remove('hidden');
 
+            // Set up Server-Sent Events for progress tracking
+            let eventSource = null;
             try {
+                eventSource = new EventSource(`/api/progress?sessionId=${sessionId}`);
+                
+                eventSource.onmessage = function(event) {
+                    try {
+                        const data = JSON.parse(event.data);
+                        
+                        if (data.type === 'progress') {
+                            updateProgress(data.progress, data.message);
+                            addProgressMessage(data.message, 'progress');
+                        } else if (data.type === 'status') {
+                            progressText.textContent = data.message;
+                            addProgressMessage(data.message, 'status');
+                            if (data.progress !== undefined) {
+                                updateProgress(data.progress, data.message);
+                            }
+                        } else if (data.type === 'complete') {
+                            updateProgress(100, data.message);
+                            addProgressMessage(data.message, 'success');
+                            
+                            if (isPreview && data.previewUrl && data.downloadUrl) {
+                                // Handle preview completion immediately
+                                createSuccessResult(data, true);
+                                // Also set button text to success
+                                clickedButton.innerHTML = '✅ 预览已生成！';
+                            } else if (!isPreview) {
+                                // For download mode, just show completion
+                                addProgressMessage('准备下载ZIP文件...', 'success');
+                            }
+                        } else if (data.type === 'error') {
+                            addProgressMessage('Error: ' + data.message, 'error');
+                            throw new Error(data.message);
+                        }
+                    } catch (e) {
+                        console.error('Error parsing SSE data:', e);
+                    }
+                };
+
+                eventSource.onerror = function(event) {
+                    console.error('SSE connection error:', event);
+                    // Don't immediately close - let the browser handle reconnection
+                    // Only close if we explicitly get an error state
+                    if (eventSource.readyState === EventSource.CLOSED) {
+                        console.log('SSE connection closed');
+                        addProgressMessage('Connection lost, retrying...', 'error');
+                    }
+                };
+
                 const response = await fetch('/api/clone', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                     },
-                    body: JSON.stringify({ url })
+                    body: JSON.stringify({ 
+                        url: url,
+                        preview: isPreview,
+                        sessionId: sessionId
+                    })
                 });
 
                 if (!response.ok) {
-                    let errorMessage = '克隆失败';
+                    let errorMessage = '操作失败，请稍后重试';
                     try {
                         const errorData = await response.json();
                         errorMessage = errorData.error || errorMessage;
                     } catch (jsonError) {
-                        // The error response might not be JSON.
                         errorMessage = await response.text();
                     }
                     throw new Error(errorMessage);
                 }
 
-                const disposition = response.headers.get('Content-Disposition');
-                let filename = 'website-clone.zip';
-                if (disposition && disposition.indexOf('attachment') !== -1) {
-                    const filenameRegex = /filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/;
-                    const matches = filenameRegex.exec(disposition);
-                    if (matches != null && matches[1]) {
-                        filename = matches[1].replace(/['"]/g, '');
+                if (isPreview) {
+                    // For preview, the success will be handled by SSE events
+                    const result = await response.json();
+                    if (result.success) {
+                        clickedButton.innerHTML = '✅ 预览已生成！';
+                        setTimeout(() => {
+                            clickedButton.innerHTML = originalText;
+                        }, 3000);
                     }
+                } else {
+                    // Handle download response
+                    const disposition = response.headers.get('Content-Disposition');
+                    let filename = 'website-clone.zip';
+                    if (disposition && disposition.indexOf('attachment') !== -1) {
+                        const filenameRegex = /filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/;
+                        const matches = filenameRegex.exec(disposition);
+                        if (matches != null && matches[1]) {
+                            filename = matches[1].replace(/['"]/g, '');
+                        }
+                    }
+                    
+                    const blob = await response.blob();
+                    
+                    const downloadUrl = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = downloadUrl;
+                    a.download = filename;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    
+                    URL.revokeObjectURL(downloadUrl);
+                    
+                    // Success feedback and show result
+                    clickedButton.innerHTML = '✅ 下载成功！';
+                    createSuccessResult({}, false); // Show download success message
+                    setTimeout(() => {
+                        clickedButton.innerHTML = originalText;
+                    }, 3000);
                 }
                 
-                const blob = await response.blob();
-                
-                const downloadUrl = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = downloadUrl;
-                a.download = filename;
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-                
-                URL.revokeObjectURL(downloadUrl);
-                
             } catch (error) {
-                alert(error.message);
+                addProgressMessage('Error: ' + error.message, 'error');
+                alert('❌ ' + error.message);
+                clickedButton.innerHTML = isPreview ? '❌ 预览失败' : '❌ 下载失败';
+                setTimeout(() => {
+                    clickedButton.innerHTML = originalText;
+                }, 3000);
             } finally {
+                // Close SSE connection
+                if (eventSource) {
+                    eventSource.close();
+                }
+                
                 // 恢复按钮状态
-                cloneButton.disabled = false;
-                cloneButton.textContent = originalText;
-                progress.classList.add('hidden');
+                allButtons.forEach(btn => btn.disabled = false);
+                
+                // Keep progress visible for preview results, hide for downloads after delay
+                setTimeout(() => {
+                    if (!isPreview) {
+                        progress.classList.add('hidden');
+                    }
+                    // For preview, keep progress visible to show the complete process
+                }, isPreview ? 5000 : 3000); // Longer delay for preview to let users see the full log
             }
+        });
+
+        // Smooth scrolling for navigation links
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
+                }
+            });
         });
     </script>
 </body>

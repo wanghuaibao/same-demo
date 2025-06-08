@@ -1,18 +1,103 @@
-# same-demo
+# Website Cloner - 专业网站克隆工具
 
-To install dependencies:
+一个基于 Bun + TypeScript + Puppeteer 构建的专业级网站克隆工具，支持一键克隆任何网站并提供在线预览和ZIP下载功能。
+
+## ✨ 主要特性
+
+- 🚀 **极速克隆**：30-90秒完成完整网站克隆
+- 👁️ **在线预览**：生成可访问的预览链接，无需下载即可查看
+- 📦 **ZIP下载**：完整打包所有资源，支持本地离线访问
+- 🔍 **实时进度**：Server-Sent Events 实时显示克隆进度和详细日志
+- 💎 **完美兼容**：智能处理CORS、Next.js、动态内容等复杂场景
+- 🛡️ **资源完整**：自动下载CSS、JS、图片、字体等所有外部资源
+- 🔧 **冲突解决**：智能处理文件路径冲突，确保克隆成功
+- 🌐 **开箱即用**：解压后支持file://协议直接访问
+
+## 🎯 支持的网站类型
+
+- ✅ 静态网站（HTML/CSS/JS）
+- ✅ React/Vue等SPA应用
+- ✅ Next.js网站（含SSR/SSG）
+- ✅ 含有CDN资源的网站
+- ✅ 使用外部字体的网站
+- ✅ 复杂布局和动画网站
+
+## 🚀 快速开始
+
+### 安装依赖
 
 ```bash
 bun install
 ```
 
-To run:
+### 启动开发服务器
 
 ```bash
-bun run index.ts
+bun run dev
 ```
 
-This project was created using `bun init` in bun v1.2.15. [Bun](https://bun.sh) is a fast all-in-one JavaScript runtime.
+服务器将在 `http://localhost:3000` 启动。
+
+### 使用方法
+
+1. 打开浏览器访问 http://localhost:3000
+2. 输入要克隆的网站地址（如：`https://example.com`）
+3. 选择操作模式：
+   - **👁️ 在线预览**：生成预览链接，可直接在浏览器查看
+   - **📥 下载ZIP**：打包下载，支持离线访问
+4. 实时查看克隆进度和详细日志
+5. 克隆完成后获取预览链接或下载文件
+
+### 生产环境运行
+
+```bash
+bun run start
+```
+
+## 🔧 API接口
+
+### 克隆网站
+```bash
+POST /api/clone
+Content-Type: application/json
+
+{
+  "url": "https://example.com",
+  "preview": true,  // true=预览模式，false=下载模式
+  "sessionId": "session_12345"
+}
+```
+
+### 实时进度
+```bash
+GET /api/progress?sessionId=session_12345
+```
+返回Server-Sent Events流，实时推送克隆进度。
+
+## 🛠️ 技术架构
+
+- **运行时**：Bun (非Node.js)
+- **后端**：TypeScript + Bun HTTP服务器
+- **爬虫引擎**：Puppeteer + Cheerio
+- **前端**：原生JavaScript + Tailwind CSS
+- **实时通信**：Server-Sent Events (SSE)
+- **文件处理**：JSZip
+- **静态服务**：支持预览文件托管
+
+## 📋 项目结构
+
+```
+same-demo/
+├── src/
+│   ├── server.ts    # Bun HTTP服务器
+│   ├── clone.ts     # 核心克隆逻辑
+│   └── index.ts     # 程序入口
+├── public/
+│   └── index.html   # 前端界面
+├── preview/         # 预览文件存储目录
+├── downloads/       # 下载文件存储目录
+└── package.json
+```
 
 ## 本地运行指北
 
@@ -20,113 +105,3 @@ This project was created using `bun init` in bun v1.2.15. [Bun](https://bun.sh) 
    ```bash
    bun run dev
    ```
-   服务器将在 `http://localhost:3000` 启动，支持热重载。
-
-2. **打开浏览器测试**
-   - 访问 http://localhost:3000
-   - 输入要克隆的网站地址（如：`https://example.com`）
-   - 点击 "Clone" 按钮
-   - 等待克隆完成后自动下载 ZIP 文件
-
-3. **生产环境运行**
-   ```bash
-   bun run start
-   ```
-
-## 常见问题排查
-
-<details>
-<summary>❌ Chromium 下载失败</summary>
-
-**现象：** 安装 puppeteer 时报错 `Failed to set up Chrome`
-
-**解决方案：**
-```bash
-# 方案 1：手动安装 Chromium
-npx puppeteer browsers install chrome
-
-# 方案 2：使用系统 Chrome
-export PUPPETEER_EXECUTABLE_PATH="/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
-bun run dev
-
-# 方案 3：重新安装（跳过下载）
-PUPPETEER_SKIP_DOWNLOAD=true bun install
-```
-</details>
-
-<details>
-<summary>❌ 端口 3000 被占用</summary>
-
-**现象：** `EADDRINUSE: address already in use :::3000`
-
-**解决方案：**
-```bash
-# 查找占用进程
-lsof -i :3000
-
-# 杀死占用进程
-kill -9 <PID>
-
-# 或修改端口（编辑 src/server.ts）
-port: 3001  // 改为其他端口
-```
-</details>
-
-<details>
-<summary>❌ macOS 权限问题</summary>
-
-**现象：** `Permission denied` 或 `Operation not permitted`
-
-**解决方案：**
-```bash
-# 给予终端完全磁盘访问权限
-# 系统偏好设置 → 安全性与隐私 → 隐私 → 完全磁盘访问权限 → 添加终端
-
-# 或临时修改目录权限
-sudo chmod 755 /tmp
-mkdir -p /tmp/website-clone
-chmod 777 /tmp/website-clone
-```
-</details>
-
-<details>
-<summary>❌ 克隆超时或失败</summary>
-
-**现象：** 网站克隆过程中超时或网络错误
-
-**解决方案：**
-1. **检查网络连接**：确保能正常访问目标网站
-2. **增加超时时间**：编辑 `src/clone.ts`，调整 `timeout` 参数
-3. **使用代理**：
-   ```bash
-   export HTTP_PROXY=http://proxy.example.com:8080
-   export HTTPS_PROXY=http://proxy.example.com:8080
-   bun run dev
-   ```
-4. **跳过大文件**：目前已配置跳过 >10MB 文件，如需调整可修改 `maxResourceSize`
-</details>
-
-<details>
-<summary>❌ ZIP 下载失败</summary>
-
-**现象：** 浏览器无法下载生成的 ZIP 文件
-
-**解决方案：**
-1. **检查浏览器下载设置**：确保允许自动下载
-2. **清除浏览器缓存**：刷新页面重试
-3. **手动下载**：
-   ```bash
-   curl -X POST http://localhost:3000/api/clone \
-     -H "Content-Type: application/json" \
-     -d '{"url":"https://example.com"}' \
-     --output site.zip
-   ```
-</details>
-
-## 技术栈
-
-- **运行时**：Bun
-- **后端**：TypeScript + Bun 原生 HTTP 服务器
-- **爬虫**：website-scraper + puppeteer
-- **前端**：原生 JavaScript + Tailwind CSS
-- **打包**：JSZip

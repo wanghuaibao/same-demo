@@ -6,7 +6,7 @@ import * as path from 'path';
 import * as os from 'os';
 import * as posixPath from 'path/posix';
 
-export async function clone(url: string, progressCallback: (p: number) => void) {
+export async function clone(url: string, progressCallback: (p: number, message?: string) => void): Promise<Buffer> {
   const browser = await puppeteer.launch({ 
     headless: true,
     executablePath: '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome'
@@ -31,13 +31,21 @@ export async function clone(url: string, progressCallback: (p: number) => void) 
       return;
     }
     
-    // Block Next.js API routes and image optimization that won't work in static mode
+    // Block Next.js API routes and dynamic features that won't work in static mode
     if (requestUrl.includes('/_next/image') || 
         requestUrl.includes('/api/') ||
         requestUrl.includes('/_next/webpack-hmr') ||
+        requestUrl.includes('/_next/static/chunks/pages/api/') ||
         resourceType === 'websocket') {
       console.log(`Blocking Next.js API/dynamic resource: ${requestUrl}`);
       request.abort();
+      return;
+    }
+    
+    // Allow all Next.js static resources
+    if (requestUrl.includes('/_next/static/')) {
+      console.log(`Allowing Next.js static resource: ${requestUrl}`);
+      request.continue();
       return;
     }
     
@@ -108,16 +116,34 @@ export async function clone(url: string, progressCallback: (p: number) => void) 
             pathName = `file_${Math.abs(hash)}.${extension}`;
           }
 
+          // Update progress with detailed message
+          const progress = Math.min(resources.size / 50, 0.8); // Rough estimation
+
+          // Handle potential file/directory conflicts
+          // If we already have a file with this name, and now we need a directory with the same name
           if (resources.has(pathName)) {
-            return;
+            // Check if this is a directory conflict (new path has nested structure)
+            const isNestedPath = pathName.includes('/');
+            if (isNestedPath) {
+              const basePath = pathName.split('/')[0];
+              if (basePath && resources.has(basePath)) {
+                // Rename the existing file to avoid conflict
+                const existingResource = resources.get(basePath);
+                if (existingResource) {
+                  resources.delete(basePath);
+                  resources.set(`${basePath}_file`, existingResource);
+                  console.log(`🔄 Renamed conflicting file: ${basePath} -> ${basePath}_file`);
+                  progressCallback(progress, `🔄 Renamed conflicting file: ${basePath} -> ${basePath}_file`);
+                }
+              }
+            } else {
+              return; // Skip duplicate file
+            }
           }
 
           resources.set(pathName, { buffer, contentType });
           console.log(`Downloaded: ${pathName}`);
-          
-          // Update progress
-          const progress = Math.min(resources.size / 50, 0.8); // Rough estimation
-          progressCallback(progress);
+          progressCallback(progress, `Downloaded: ${pathName}`);
         } catch (e) {
           console.error(`Failed to download ${requestUrl}: ${e}`);
         }
@@ -131,6 +157,7 @@ export async function clone(url: string, progressCallback: (p: number) => void) 
     
     // Wait additional time for modern frameworks to load dynamic content
     console.log('Waiting for dynamic content to load...');
+    progressCallback(0.8, 'Waiting for dynamic content to load...');
     await new Promise(resolve => setTimeout(resolve, 5000));
     
     // Trigger any lazy loading by scrolling
@@ -178,6 +205,7 @@ export async function clone(url: string, progressCallback: (p: number) => void) 
           const originalUrl = new URL(originalPath, url).toString();
           imagesToDownload.push(originalUrl);
           console.log(`📸 Found original image to download: ${originalPath}`);
+          progressCallback(0.8, `📸 Found original image to download: ${originalPath}`);
         }
       } catch (e) {
         console.log(`Failed to parse image URL: ${src}`);
@@ -200,6 +228,7 @@ export async function clone(url: string, progressCallback: (p: number) => void) 
           contentType: response.headers.get('content-type') || 'image/jpeg' 
         });
         console.log(`✅ Downloaded original image: ${imagePath}`);
+        progressCallback(0.85, `✅ Downloaded original image: ${imagePath}`);
       }
     } catch (e) {
       console.log(`❌ Failed to download image: ${imageUrl}`);
@@ -239,6 +268,7 @@ export async function clone(url: string, progressCallback: (p: number) => void) 
               const cleanPath = originalPath.substring(1); // Remove leading slash
               if (resources.has(cleanPath)) {
                 console.log('🖼️ Replacing Next.js image with original:', cleanPath);
+                progressCallback(0.87, `🖼️ Replacing Next.js image with original: ${cleanPath}`);
                 el.attr(attr, cleanPath);
                 continue;
               }
@@ -260,13 +290,14 @@ export async function clone(url: string, progressCallback: (p: number) => void) 
         
         // Handle other API resources
         if (resourceUrl.includes('/api/') || resourceUrl.includes('gtag/js')) {
-          console.log('🗑️ Removing API resource:', resourceUrl);
-          if (attr === 'src' || attr === 'href') {
-            el.removeAttr(attr);
-          } else {
-            el.removeAttr(attr);
-          }
-          continue;
+                  console.log('🗑️ Removing API resource:', resourceUrl);
+        progressCallback(0.87, `🗑️ Removing API resource: ${resourceUrl}`);
+        if (attr === 'src' || attr === 'href') {
+          el.removeAttr(attr);
+        } else {
+          el.removeAttr(attr);
+        }
+        continue;
         }
         
         try {
@@ -356,6 +387,7 @@ export async function clone(url: string, progressCallback: (p: number) => void) 
             } else {
               // Log missing resource for debugging
               console.log(`⚠️ Could not find resource: ${localPath} (original: ${resourceUrl})`);
+              progressCallback(0.87, `⚠️ Could not find resource: ${localPath} (original: ${resourceUrl})`);
             }
           }
         } catch (e) {
@@ -365,346 +397,218 @@ export async function clone(url: string, progressCallback: (p: number) => void) 
     }
   });
 
-  // Add Raphael.app specific handling
-  if (url.includes('raphael.app')) {
-    $('head').append(`
-      <script>
-// Raphael.app specific fixes
+  // Add Raphael.app specific optimizations
+  $('head').append(`
+    <script>
 console.log("🎨 Raphael.app specific optimizations loaded");
+    </script>
+  `);
 
-// Mock the AI image generation functionality for demo purposes
-window.mockRaphaelAPI = {
-    generateImage: function(prompt) {
-        console.log("🎨 Mock image generation for:", prompt);
-        return Promise.resolve({
-            imageUrl: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNTEyIiBoZWlnaHQ9IjUxMiIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZGVmcz48bGluZWFyR3JhZGllbnQgaWQ9ImciIHgxPSIwJSIgeTE9IjAlIiB4Mj0iMTAwJSIgeTI9IjEwMCUiPjxzdG9wIG9mZnNldD0iMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiM2MzY2ZjE7c3RvcC1vcGFjaXR5OjEiIC8+PHN0b3Agb2Zmc2V0PSIxMDAlIiBzdHlsZT0ic3RvcC1jb2xvcjojOGI1Y2Y2O3N0b3Atb3BhY2l0eToxIiAvPjwvbGluZWFyR3JhZGllbnQ+PC9kZWZzPjxyZWN0IHdpZHRoPSI1MTIiIGhlaWdodD0iNTEyIiBmaWxsPSJ1cmwoI2cpIi8+PHRleHQgeD0iMjU2IiB5PSIyNDAiIGZvbnQtc2l6ZT0iMjQiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBkeT0iLjNlbSI+R2VuZXJhdGVkIEltYWdlPC90ZXh0Pjx0ZXh0IHg9IjI1NiIgeT0iMjgwIiBmb250LXNpemU9IjE2IiBmaWxsPSJ3aGl0ZSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPlN0YXRpYyBDbG9uZTwvdGV4dD48L3N2Zz4=',
-            success: true
-        });
-    }
-};
-
-// Mock any API calls that might be used for image generation
-if (window.fetch) {
-    const originalFetch = window.fetch;
-    window.fetch = function(url, options) {
-        if (typeof url === 'string' && (url.includes('/api/generate') || url.includes('/generate') || url.includes('replicate.com'))) {
-            console.log("🎨 Mocking image generation API call");
-            return Promise.resolve(new Response(JSON.stringify({
-                imageUrl: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNTEyIiBoZWlnaHQ9IjUxMiIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZGVmcz48bGluZWFyR3JhZGllbnQgaWQ9ImciIHgxPSIwJSIgeTE9IjAlIiB4Mj0iMTAwJSIgeTI9IjEwMCUiPjxzdG9wIG9mZnNldD0iMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiM2MzY2ZjE7c3RvcC1vcGFjaXR5OjEiIC8+PHN0b3Agb2Zmc2V0PSIxMDAlIiBzdHlsZT0ic3RvcC1jb2xvcjojOGI1Y2Y2O3N0b3Atb3BhY2l0eToxIiAvPjwvbGluZWFyR3JhZGllbnQ+PC9kZWZzPjxyZWN0IHdpZHRoPSI1MTIiIGhlaWdodD0iNTEyIiBmaWxsPSJ1cmwoI2cpIi8+PHRleHQgeD0iMjU2IiB5PSIyNDAiIGZvbnQtc2l6ZT0iMjQiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBkeT0iLjNlbSI+R2VuZXJhdGVkIEltYWdlPC90ZXh0Pjx0ZXh0IHg9IjI1NiIgeT0iMjgwIiBmb250LXNpemU9IjE2IiBmaWxsPSJ3aGl0ZSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPlN0YXRpYyBDbG9uZTwvdGV4dD48L3N2Zz4=',
-                success: true,
-                message: 'Static clone - AI generation not available'
-            }), {
-                status: 200,
-                headers: { 'Content-Type': 'application/json' }
-            }));
+  // Add ULTIMATE preview path fix - must run FIRST
+  $('head').append(`
+    <script>
+// ULTIMATE Next.js Preview Fix - Intercept ALL module loading
+(function() {
+    const isPreviewMode = window.location.href.includes('/preview/');
+    if (!isPreviewMode) return;
+    
+    const matches = window.location.pathname.match(/\\/preview\\/([^\\/]+)/);
+    if (!matches) return;
+    
+    const previewBasePath = '/preview/' + matches[1];
+    console.log('🎯 Ultimate Next.js fix activating for:', previewBasePath);
+    
+    // Store globally for access
+    window._previewBasePath = previewBasePath;
+    
+    // Intercept webpack's public path setting - HIGHEST PRIORITY
+    let webpackPublicPathSet = false;
+    Object.defineProperty(window, '__webpack_public_path__', {
+        get() { return this._wpPublicPath || previewBasePath + '/_next/'; },
+        set(value) { 
+            this._wpPublicPath = previewBasePath + '/_next/';
+            console.log('🔄 Intercepted __webpack_public_path__ setting:', this._wpPublicPath);
         }
-        return originalFetch.apply(this, arguments);
+    });
+    
+    // Intercept webpack require definition
+    let originalWebpackRequire = null;
+    Object.defineProperty(window, '__webpack_require__', {
+        get() { return this._webpackRequire; },
+        set(value) {
+            this._webpackRequire = value;
+            if (value && !webpackPublicPathSet) {
+                value.p = previewBasePath + '/_next/';
+                webpackPublicPathSet = true;
+                console.log('🔄 Set webpack.p to:', value.p);
+            }
+            
+            // Intercept chunk loading function
+            if (value && value.l && !value._previewPatched) {
+                const originalL = value.l;
+                value.l = function(url, done, key, chunkId) {
+                    if (typeof url === 'string' && url.startsWith('/_next/')) {
+                        url = previewBasePath + url;
+                        console.log('🔄 Redirecting chunk load:', url);
+                    }
+                    return originalL.call(this, url, done, key, chunkId);
+                };
+                value._previewPatched = true;
+            }
+            
+            // Intercept dynamic import
+            if (value && value.e && !value._importPatched) {
+                const originalE = value.e;
+                value.e = function(chunkId) {
+                    // Try to intercept and fix the URL at the source
+                    const result = originalE.call(this, chunkId);
+                    if (result && result.catch) {
+                        return result.catch(error => {
+                            console.warn('🔧 Chunk load failed, intercepting:', error);
+                            return Promise.reject(error);
+                        });
+                    }
+                    return result;
+                };
+                value._importPatched = true;
+            }
+        }
+    });
+    
+    // Patch document.createElement for script elements
+    const originalCreateElement = document.createElement;
+    document.createElement = function(tagName) {
+        const element = originalCreateElement.call(this, tagName);
+        
+        if (tagName.toLowerCase() === 'script') {
+            let srcSet = false;
+            Object.defineProperty(element, 'src', {
+                get() { return this._src || ''; },
+                set(value) {
+                    if (typeof value === 'string' && value.startsWith('/_next/')) {
+                        this._src = previewBasePath + value;
+                        console.log('🔄 Script src rewritten:', value, '->', this._src);
+                    } else {
+                        this._src = value;
+                    }
+                    if (!srcSet) {
+                        srcSet = true;
+                        originalCreateElement.call(document, 'script').src = this._src;
+                    }
+                }
+            });
+        }
+        
+        return element;
     };
-}
-      </script>
-    `);
-  }
+    
+    // Patch link elements for CSS
+    const originalSetAttribute = Element.prototype.setAttribute;
+    Element.prototype.setAttribute = function(name, value) {
+        if (this.tagName === 'LINK' && name === 'href' && typeof value === 'string' && value.startsWith('/_next/')) {
+            value = previewBasePath + value;
+            console.log('🔄 Link href rewritten:', value);
+        }
+        return originalSetAttribute.call(this, name, value);
+    };
+    
+    console.log('✅ Ultimate Next.js preview fix installed');
+})();
+    </script>
+  `);
 
-  // Add enhanced script for static mode with Next.js and modern framework support
+  // Add simplified but effective Next.js fix script
   $('head').append(`
     <script>
 console.log("🚀 Enhanced static clone script with Next.js support loaded");
 
-if (window.location.protocol === 'file:') {
-    console.log("📁 File protocol detected, applying comprehensive fixes...");
-
-    const originalFetch = window.fetch;
-    const originalXhrOpen = window.XMLHttpRequest.prototype.open;
-    const allowedExtensions = ['.css', '.js', '.json', '.png', '.jpg', '.jpeg', '.gif', '.svg', '.woff', '.woff2', '.ttf', '.eot', '.mp4', '.webm', '.ogg', '.webp'];
-
-    function shouldBlockRequest(url) {
-        try {
-            const urlObj = new URL(url, window.location.href);
-            const isApiCall = !allowedExtensions.some(ext => urlObj.pathname.endsWith(ext));
-            // Special handling for Next.js image optimization API
-            if (urlObj.pathname.includes('/_next/image')) {
-                console.log('🖼️ Blocking Next.js image API call:', urlObj.pathname);
-                return true;
-            }
-            if (isApiCall) {
-                console.log('🚫 Blocking API call:', urlObj.pathname);
-                return true;
-            }
-        } catch (e) {
-            if (!allowedExtensions.some(ext => url.endsWith(ext))) {
-                 console.log('🚫 Blocking API call:', url);
-                return true;
-            }
-        }
-        return false;
-    }
-
-    // Enhanced fetch wrapper with better error handling for Next.js
-    window.fetch = function(input, init) {
-        const requestUrl = (typeof input === 'string') ? input : input.url;
-        if (shouldBlockRequest(requestUrl)) {
-            // Return appropriate mock responses for different types of requests
-            if (requestUrl.includes('/_next/image')) {
-                return Promise.resolve(new Response(new Blob(), {
-                    status: 200,
-                    statusText: 'OK',
-                    headers: { 'Content-Type': 'image/png' }
-                }));
-            }
-            return Promise.resolve(new Response('{}', {
-                status: 200,
-                statusText: 'OK',
-                headers: { 'Content-Type': 'application/json' }
-            }));
-        }
-        return originalFetch.apply(this, arguments).catch(error => {
-            console.warn('🔧 Fetch failed, returning empty response:', error);
-            return new Response('{}', {
-                status: 200,
-                statusText: 'OK',
-                headers: { 'Content-Type': 'application/json' }
-            });
-        });
-    };
-
-    // Enhanced XHR wrapper with better error handling  
-    window.XMLHttpRequest.prototype.open = function(method, url, async, user, password) {
-        if (shouldBlockRequest(url)) {
-            console.log('🚫 XHR request blocked:', url);
-            // Return mock successful response instead of aborting
-            setTimeout(() => {
-                if (this.onreadystatechange) {
-                    Object.defineProperty(this, 'readyState', { value: 4, writable: false });
-                    Object.defineProperty(this, 'status', { value: 200, writable: false });
-                    Object.defineProperty(this, 'responseText', { value: '{}', writable: false });
-                    this.onreadystatechange();
-                }
-            }, 0);
-            return;
-        }
-        return originalXhrOpen.apply(this, arguments);
-    };
-
-    // Enhanced webpack chunk loading with better error recovery for Next.js
-    if (typeof window !== 'undefined') {
-        // Override __webpack_require__ if available
-        if (window.__webpack_require__) {
-            const originalRequire = window.__webpack_require__;
-            window.__webpack_require__ = function(moduleId) {
-                try {
-                    return originalRequire(moduleId);
-                } catch (e) {
-                    console.warn('🔧 Module load failed, returning empty object:', moduleId);
-                    return {};
-                }
-            };
-        }
-
-        // Enhanced webpack chunk error handling
-        const originalDefine = window.define;
-        if (originalDefine) {
-            window.define = function(...args) {
-                try {
-                    return originalDefine.apply(this, args);
-                } catch (e) {
-                    console.warn('🔧 AMD define failed, continuing:', e);
-                }
-            };
-        }
-
-        // Patch webpack chunk loading with retries and fallbacks
-        let webpackJsonp = window.__webpack_require__ && window.__webpack_require__.e;
-        if (webpackJsonp) {
-            const originalChunkLoad = webpackJsonp;
-            window.__webpack_require__.e = function(chunkId) {
-                return originalChunkLoad.call(this, chunkId).catch((error) => {
-                    console.warn('🔧 Chunk load failed, returning resolved promise:', chunkId, error);
-                    return Promise.resolve();
-                });
-            };
-        }
-
-        // Handle Next.js specific globals
-        if (typeof window.__NEXT_DATA__ !== 'undefined') {
-            console.log('🔍 Next.js app detected, applying specific fixes...');
-            
-            // Mock Next.js router for static mode
-            if (!window.next) {
-                window.next = {
-                    router: {
-                        push: () => Promise.resolve(true),
-                        replace: () => Promise.resolve(true),
-                        back: () => {},
-                        reload: () => window.location.reload(),
-                        events: {
-                            on: () => {},
-                            off: () => {},
-                            emit: () => {}
-                        }
-                    }
-                };
-            }
-            
-            // Mock Next.js image optimization
-            if (window.Image) {
-                const OriginalImage = window.Image;
-                window.Image = function(...args) {
-                    const img = new OriginalImage(...args);
-                    const originalSrc = Object.getOwnPropertyDescriptor(HTMLImageElement.prototype, 'src');
-                    
-                    Object.defineProperty(img, 'src', {
-                        get: originalSrc.get,
-                        set: function(value) {
-                            // Redirect Next.js optimized images to placeholder or fallback
-                            if (value && value.includes('/_next/image')) {
-                                console.log('🖼️ Redirecting Next.js optimized image to placeholder');
-                                originalSrc.set.call(this, 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgZmlsbD0iI2RkZCIvPjx0ZXh0IHg9IjUwIiB5PSI1MCIgZm9udC1zaXplPSIxMiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPkltYWdlPC90ZXh0Pjwvc3ZnPg==');
-                            } else {
-                                originalSrc.set.call(this, value);
-                            }
-                        }
-                    });
-                    
-                    return img;
-                };
-            }
-        }
-    }
-
-    // Handle dynamic imports that might fail
-    const originalDynamicImport = window.__dynamicImportHandler__ || (async (url) => import(url));
-    window.__dynamicImportHandler__ = async function(url) {
-        try {
-            return await originalDynamicImport(url);
-        } catch (e) {
-            console.warn('🔧 Dynamic import failed, returning empty module:', url);
-            return { default: () => null };
-        }
-    };
-
-    // Intercept fetch requests for Next.js images and redirect to error handling
-    if (window.fetch) {
+// Enhanced fetch wrapper with preview path support
+(function() {
+    const isPreviewMode = window.location.href.includes('/preview/');
+    const previewBasePath = window._previewBasePath || '';
+    
+    if (window.location.protocol === 'file:' || isPreviewMode) {
+        console.log("📁 Static mode detected, applying network fixes...");
+        
         const originalFetch = window.fetch;
+        const originalXhrOpen = window.XMLHttpRequest.prototype.open;
+        
+        // Enhanced fetch wrapper with better URL handling
         window.fetch = function(input, init) {
-            if (typeof input === 'string' && input.includes('/_next/image')) {
-                console.log('🔧 Intercepting Next.js image fetch request:', input);
-                // Return a rejected promise to trigger error handling
-                return Promise.reject(new Error('Next.js image API not available in static mode'));
-            }
-            return originalFetch.call(this, input, init);
-        };
-    }
-
-    document.addEventListener('DOMContentLoaded', () => {
-        console.log("🎯 DOM loaded, enhancing interactions...");
-        
-        // Enable videos with better error handling
-        document.querySelectorAll('video').forEach(v => {
-            v.muted = true;
-            v.play().catch(e => console.warn("Video autoplay prevented:", e));
-        });
-        
-        // Handle missing images gracefully and fix Next.js images
-        document.querySelectorAll('img').forEach(img => {
-            img.addEventListener('error', function() {
-                console.warn('⚠️ Image not found:', this.src);
-                if (this.src.includes('/_next/image')) {
-                    // Replace with placeholder for Next.js optimized images
-                    this.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgZmlsbD0iI2RkZCIvPjx0ZXh0IHg9IjUwIiB5PSI1MCIgZm9udC1zaXplPSIxMiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPkltYWdlPC90ZXh0Pjwvc3ZnPg==';
-                    this.style.opacity = '0.5';
-                } else {
-                    this.style.display = 'none'; // Hide other broken images
-                }
-            });
+            let url = typeof input === 'string' ? input : input.url;
             
-            // Preemptively fix Next.js image sources
-            if (img.src && img.src.includes('/_next/image')) {
-                console.log('🖼️ Converting Next.js optimized image to placeholder');
-                img.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgZmlsbD0iI2RkZCIvPjx0ZXh0IHg9IjUwIiB5PSI1MCIgZm9udC1zaXplPSIxMiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPkltYWdlPC90ZXh0Pjwvc3ZnPg==';
-                img.style.opacity = '0.5';
+            if (typeof url === 'string' && url.startsWith('/_next/')) {
+                const newUrl = previewBasePath + url;
+                console.log('🔄 Fetch rewritten:', url, '->', newUrl);
+                
+                if (typeof input === 'string') {
+                    input = newUrl;
+                } else if (input.url) {
+                    input = new Request(newUrl, input);
+                }
             }
-        });
+            
+            // Block API calls
+            if (url.includes('/api/')) {
+                console.log('🚫 API call blocked:', url);
+                return Promise.resolve(new Response('{}', { status: 200 }));
+            }
+            
+            return originalFetch.call(this, input, init).catch(error => {
+                console.warn('🔧 Fetch failed, returning empty response:', error);
+                return new Response('{}', { status: 200 });
+            });
+        };
 
-        // Enable interactive elements that might be disabled for static mode
-        document.querySelectorAll('button, [role="button"], .interactive').forEach(el => {
-            el.style.pointerEvents = 'auto';
-            el.style.cursor = 'pointer';
-        });
-
-        // Enhanced font CORS fixes with better fallbacks
-        setTimeout(() => {
-            console.log('🔤 Applying enhanced font CORS fixes...');
-            const style = document.createElement('style');
-            style.textContent = \`
-                @font-face {
-                    font-family: '__Next_Font_Fallback__';
-                    src: local('system-ui'), local('-apple-system'), local('BlinkMacSystemFont');
-                    font-display: swap;
-                }
-                
-                /* Apply fallback fonts to all elements */
-                *, ::before, ::after {
-                    font-family: '__Next_Font_Fallback__', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif !important;
-                }
-                
-                /* Override preload link CORS issues */
-                link[rel="preload"][as="font"] {
-                    display: none !important;
-                }
-                
-                /* Hide broken images and placeholders */
-                img[src*="data:"], img[src=""], img[src*="/_next/image"] {
-                    opacity: 0.5 !important;
-                    background: #f0f0f0 !important;
-                    border: 1px dashed #ccc !important;
-                }
-                
-                /* Fix common Next.js layout issues in static mode */
-                [data-nextjs-scroll-focus-boundary] {
-                    display: contents !important;
-                }
-                
-                /* Ensure text remains visible during font loading */
-                body {
-                    font-display: swap !important;
-                }
-            \`;
-            document.head.appendChild(style);
-        }, 100);
-
-        // Enhanced error suppression for React/Next.js chunk loading
+        // Enhanced XHR wrapper
+        window.XMLHttpRequest.prototype.open = function(method, url, async, user, password) {
+            let modifiedUrl = url;
+            
+            if (isPreviewMode && typeof url === 'string' && url.startsWith('/_next/')) {
+                modifiedUrl = previewBasePath + url;
+                console.log('🔄 Redirecting XHR request:', url, '->', modifiedUrl);
+            }
+            
+            if (modifiedUrl.includes('/api/') || modifiedUrl.includes('/_next/image')) {
+                console.log('🚫 XHR request blocked:', modifiedUrl);
+                setTimeout(() => {
+                    if (this.onreadystatechange) {
+                        Object.defineProperty(this, 'readyState', { value: 4, writable: false });
+                        Object.defineProperty(this, 'status', { value: 200, writable: false });
+                        Object.defineProperty(this, 'responseText', { value: '{}', writable: false });
+                        this.onreadystatechange();
+                    }
+                }, 0);
+                return;
+            }
+            return originalXhrOpen.call(this, method, modifiedUrl, async, user, password);
+        };
+        
+        // Error suppression
         window.addEventListener('error', (event) => {
             const errorMessage = event.message || '';
             if (errorMessage.includes('ChunkLoadError') || 
                 errorMessage.includes('Loading chunk') ||
-                errorMessage.includes('Minified React error') ||
-                errorMessage.includes('Loading CSS chunk') ||
                 errorMessage.includes('ERR_FILE_NOT_FOUND') ||
-                errorMessage.includes('/_next/image') ||
-                errorMessage.includes('Cannot read properties of undefined')) {
-                console.warn('🔧 Suppressing React/Next.js error:', errorMessage);
+                errorMessage.includes('/_next/')) {
+                console.warn('🔧 Suppressing Next.js error:', errorMessage);
                 event.preventDefault();
                 return false;
             }
         });
-
-        console.log("✅ Enhanced static mode fixes with Next.js support applied");
-    });
-
-    // Handle unhandled promise rejections from missing chunks and network failures
-    window.addEventListener('unhandledrejection', (event) => {
-        const reason = event.reason ? event.reason.toString() : '';
-        if (reason.includes('ChunkLoadError') ||
-            reason.includes('Loading chunk') ||
-            reason.includes('ERR_FILE_NOT_FOUND') ||
-            reason.includes('net::ERR_FILE_NOT_FOUND') ||
-            reason.includes('/_next/image') ||
-            reason.includes('Cannot read properties of undefined')) {
-            console.warn('🔧 Suppressing chunk/network load error:', reason);
-            event.preventDefault();
-        }
-    });
-}
+        
+        window.addEventListener('unhandledrejection', (event) => {
+            const reason = event.reason ? event.reason.toString() : '';
+            if (reason.includes('ChunkLoadError') ||
+                reason.includes('Loading chunk') ||
+                reason.includes('ERR_FILE_NOT_FOUND') ||
+                reason.includes('/_next/')) {
+                console.warn('🔧 Suppressing chunk load error:', reason);
+                event.preventDefault();
+            }
+        });
+    }
+})();
 </script>
   `);
 
@@ -718,6 +622,7 @@ if (window.location.protocol === 'file:') {
       // Handle srcset attribute
       if (srcset && srcset.includes('/_next/image')) {
         console.log('🧹 Final cleanup: Removing Next.js srcset attribute');
+  progressCallback(0.90, '🧹 Final cleanup: Removing Next.js srcset attribute');
         el.removeAttr('srcset');
       }
       
@@ -787,6 +692,7 @@ if (window.location.protocol === 'file:') {
 
   // First pass: collect all external images from CSS files
   console.log('🔍 First pass: scanning CSS files for external images...');
+  progressCallback(0.90, '🔍 First pass: scanning CSS files for external images...');
   for (const [filePath, { buffer, contentType }] of resources.entries()) {
     if (contentType.includes('css') && !filePath.includes('data:')) {
       try {
@@ -820,6 +726,7 @@ if (window.location.protocol === 'file:') {
 
   // Download external images that were found in CSS
   console.log(`📥 Processing ${externalImagesToDownload.size} external images...`);
+  progressCallback(0.93, `📥 Processing ${externalImagesToDownload.size} external images...`);
   for (const { url: imageUrl, localPath } of externalImagesToDownload) {
     try {
       console.log(`📥 Downloading external image: ${imageUrl}`);
@@ -930,7 +837,7 @@ if (window.location.protocol === 'file:') {
     }
   }
 
-  progressCallback(0.9);
+  progressCallback(0.95, 'Creating ZIP file...');
 
   const content = await zip.generateAsync({
     type: 'nodebuffer',
@@ -941,8 +848,9 @@ if (window.location.protocol === 'file:') {
   });
 
   await fs.writeFile('standalone-site.zip', content);
-  progressCallback(1);
+  progressCallback(1, 'Clone completed successfully!');
 
   console.log('Clone completed successfully, ZIP file saved as standalone-site.zip');
+  progressCallback(1.0, 'Clone completed successfully!');
   return content;
 }
